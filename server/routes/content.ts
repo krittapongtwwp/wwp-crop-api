@@ -15,7 +15,7 @@ const ALLOWED_TABLES = [
   'portfolio',
   'clients',
   'press',
-  'careers',
+  'career',
   'applicants',
   'leads',
   'settings',
