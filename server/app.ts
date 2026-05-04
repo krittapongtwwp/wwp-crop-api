@@ -2,6 +2,7 @@
 import express from 'express'
 import cors from 'cors'
 import path from 'path'
+import { prisma } from './libs/prisma.ts'
 
 // import { initDb } from './db.ts'
 import authRoutes from './routes/auth.ts'
@@ -35,8 +36,13 @@ export async function createApp() {
   console.log('AFTER_MIDDLEWARE')
 
   // Health check
-  app.get('/api/health', (req, res) => {
-    res.json({ status: 'ok', version: 'V-UNIQUE-V11' })
+  app.get('/api/health', async (req, res) => {
+		try{
+			await prisma.$queryRaw`SELECT 1`
+			res.json({ status: 'ok', version: 'V-UNIQUE-V11' })
+		}catch(e){
+			res.status(503).json({ status: 'ok', db: 'disconnected', error: String(e) })
+		}
   })
 
   // Request logging
