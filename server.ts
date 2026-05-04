@@ -14,18 +14,15 @@ async function startServer() {
       server: { middlewareMode: true },
       appType: "spa",
     });
-    app.use((req, res, next) => {
-      console.log(`VITE_MIDDLEWARE_HIT: ${req.url}`);
-      next();
-    });
     app.use(vite.middlewares);
-  } else {
-    const distPath = path.join(process.cwd(), 'dist');
-    app.use(express.static(distPath));
-    app.get('*', (req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
   }
+	// else {
+  //   const distPath = path.join(process.cwd(), 'dist');
+  //   app.use(express.static(distPath));
+  //   app.get('*', (req, res) => {
+  //     res.sendFile(path.join(distPath, 'index.html'));
+  //   });
+  // }
 
   app.listen(PORT, "0.0.0.0", () => {
     console.log(`SERVER_RUNNING_UNIQUE_V99_ON_PORT_${PORT}`);
