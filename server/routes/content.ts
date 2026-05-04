@@ -164,7 +164,7 @@ router.get('/:table', async (req, res) => {
         whereClaues.is_visible = valNum
       } else if (['hero_banners', 'ai_knowledge'].includes(tableInput)) {
         whereClaues.is_active = valNum
-      } else if (tableInput === 'careers') {
+      } else if (tableInput === 'career') {
         whereClaues.status = valNum === 1 ? 'open' : 'closed'
       }
     }
