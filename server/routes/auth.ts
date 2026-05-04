@@ -28,7 +28,7 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user.id, email: user.email, role: user.role }, JWT_SECRET, { expiresIn: '24h' })
     res.json({ token, user: { id: user.id, email: user.email, name: user.name, role: user.role } })
-    res.json(user)
+    // res.json(user)
   } catch (err: any) {
     res.status(500).json({ error: err.message })
   }
@@ -39,7 +39,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
   try {
     // const user = db.prepare('SELECT id, email, name, role FROM users WHERE id = ?').get(req.user.id)
     const user = await prisma.user.findUnique({
-      where: { email: req.user.id }
+      where: { id: req.user.id }
     })
     if (!user) return res.status(404).json({ error: 'User not found' })
     res.json(user)
