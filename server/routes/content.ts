@@ -45,7 +45,7 @@ const storage = multer.diskStorage({
 
 // Specific route for job application
 const upload = multer({ storage: storage })
-router.post('/careers/apply', upload.single('resume'), async (req, res) => {
+router.post('/career/apply', upload.single('resume'), async (req, res) => {
   // const db = getDb();
   const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = req.body
   const name = `${first_name} ${last_name}`
