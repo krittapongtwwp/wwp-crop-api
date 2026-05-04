@@ -10,4 +10,5 @@ RUN npx prisma generate
 ENV NODE_ENV=production
 EXPOSE 3000
 
-CMD ["npx", "tsx", "server.ts"]
+RUN chmod +x start.sh
+CMD ["sh", "start.sh"]
