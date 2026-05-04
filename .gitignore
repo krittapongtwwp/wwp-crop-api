@@ -30,7 +30,7 @@ lerna-debug.log*
 
 # Prisma
 /server/database/generated/
-/prisma/migrations/
+# /prisma/migrations/
 
 # SQLite (if used)
 *.db
