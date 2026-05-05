@@ -1,7 +1,7 @@
 import { Router } from 'express'
 import jwt from 'jsonwebtoken'
 import bcrypt from 'bcryptjs'
-import { getDb } from '../db.ts'
+// import { getDb } from '../db.ts'
 import { prisma } from '@/libs/prisma.ts'
 
 const router = Router()

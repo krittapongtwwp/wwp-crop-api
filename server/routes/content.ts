@@ -302,9 +302,7 @@ router.delete('/:table/:id', authenticateToken, async (req, res) => {
     // db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(id)
     // res.json({ success: true })
     const result = await model.delete({
-      where: {
-        id: id
-      }
+      where: { id: id }
     })
     res.json({ success: true, data: result })
   } catch (err: any) {

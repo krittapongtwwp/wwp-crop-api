@@ -1,5 +1,6 @@
 import express from 'express';
-import { getDb } from '../db.ts';
+// import { getDb } from '../db.ts';
+import { prisma } from '@/libs/prisma.ts'
 
 const router = express.Router();
 
@@ -12,13 +13,18 @@ router.post('/save-image-history', async (req, res) => {
       return res.status(400).json({ error: 'Prompt and imageUrl are required' });
     }
 
-    const db = getDb();
-    db.prepare('INSERT INTO ai_image_history (prompt, image_url) VALUES (?, ?)').run(prompt, imageUrl);
-    
+    // const db = getDb();
+    // db.prepare('INSERT INTO ai_image_history (prompt, image_url) VALUES (?, ?)').run(prompt, imageUrl);
+		const result = await prisma.ai_image_history.create({
+			data: {
+				prompt: prompt,
+				image_url: imageUrl,
+			}
+		})
     res.json({ success: true });
   } catch (error) {
-    console.error('Failed to save AI image history:', error);
-    res.status(500).json({ error: 'Failed to save history' });
+    // console.error('Failed to save AI image history:', error);
+    res.status(500).json({ error: 'Failed to save history', details: error.message });
   }
 });
 
