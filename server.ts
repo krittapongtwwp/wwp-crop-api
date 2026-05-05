@@ -1,4 +1,4 @@
-import { createApp } from "./server/app.ts";
+import { createApp } from "@/app.ts";
 
 async function startServer() {
   const app = await createApp();
