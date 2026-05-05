@@ -41,7 +41,7 @@ export async function createApp() {
 			await prisma.$queryRaw`SELECT 1`
 			res.json({ status: 'ok', version: 'V-UNIQUE-V11' })
 		}catch(e){
-			res.status(503).json({ status: 'ok', db: 'disconnected', error: String(e) })
+			res.status(503).json({ status: 'error', db: 'disconnected', error: String(e) })
 		}
   })
 
