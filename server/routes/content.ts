@@ -15,7 +15,7 @@ const ALLOWED_TABLES = [
   'portfolio',
   'clients',
   'press',
-  'career',
+  'careers',
   'applicants',
   'leads',
   'settings',
@@ -45,7 +45,7 @@ const storage = multer.diskStorage({
 
 // Specific route for job application
 const upload = multer({ storage: storage })
-router.post('/career/apply', upload.single('resume'), async (req, res) => {
+router.post('/careers/apply', upload.single('resume'), async (req, res) => {
   // const db = getDb();
   const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = req.body
   const name = `${first_name} ${last_name}`
@@ -164,7 +164,7 @@ router.get('/:table', async (req, res) => {
         whereClaues.is_visible = valNum
       } else if (['hero_banners', 'ai_knowledge'].includes(tableInput)) {
         whereClaues.is_active = valNum
-      } else if (tableInput === 'career') {
+      } else if (tableInput === 'careers') {
         whereClaues.status = valNum === 1 ? 'open' : 'closed'
       }
     }
