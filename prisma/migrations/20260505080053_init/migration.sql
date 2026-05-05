@@ -135,7 +135,7 @@ CREATE TABLE "press" (
 );
 
 -- CreateTable
-CREATE TABLE "career" (
+CREATE TABLE "careers" (
     "id" SERIAL NOT NULL,
     "slug" TEXT NOT NULL,
     "title_en" TEXT,
@@ -152,7 +152,7 @@ CREATE TABLE "career" (
     "status" TEXT NOT NULL DEFAULT 'open',
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT "career_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "careers_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
@@ -297,10 +297,10 @@ CREATE UNIQUE INDEX "services_slug_key" ON "services"("slug");
 CREATE UNIQUE INDEX "press_slug_key" ON "press"("slug");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "career_slug_key" ON "career"("slug");
+CREATE UNIQUE INDEX "careers_slug_key" ON "careers"("slug");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "settings_key_key" ON "settings"("key");
 
 -- AddForeignKey
-ALTER TABLE "applicants" ADD CONSTRAINT "applicants_career_id_fkey" FOREIGN KEY ("career_id") REFERENCES "career"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "applicants" ADD CONSTRAINT "applicants_career_id_fkey" FOREIGN KEY ("career_id") REFERENCES "careers"("id") ON DELETE SET NULL ON UPDATE CASCADE;

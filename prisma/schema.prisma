@@ -128,7 +128,7 @@ model press {
   created_at     DateTime  @default(now())
 }
 
-model career {
+model careers {
   id                  Int      @id @default(autoincrement())
   slug                String   @unique
   title_en            String?
@@ -157,7 +157,7 @@ model applicants {
   notes     String?
   status    String   @default("new")
   created_at DateTime @default(now())
-  career    career?  @relation(fields: [career_id], references: [id])
+  careers    careers?  @relation(fields: [career_id], references: [id])
 }
 
 model leads {
