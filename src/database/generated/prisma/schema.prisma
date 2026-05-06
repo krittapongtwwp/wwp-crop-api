@@ -1,0 +1,245 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  // provider = "prisma-client"
+  provider = "prisma-client-js"
+  output   = "../src/database/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model user {
+  id       Int     @id @default(autoincrement())
+  email    String  @unique
+  password String
+  name     String?
+  role     String?
+}
+
+model homepage_sections {
+  id             Int     @id @default(autoincrement())
+  section_key    String  @unique
+  title_en       String?
+  title_th       String?
+  subtitle_en    String?
+  subtitle_th    String?
+  description_en String? @db.Text
+  description_th String? @db.Text
+  is_visible     Int     @default(1)
+  sort_order     Int?
+  data           Json?
+}
+
+model solutions {
+  id             Int      @id @default(autoincrement())
+  slug           String   @unique
+  title_en       String?
+  title_th       String?
+  description_en String?  @db.Text
+  description_th String?  @db.Text
+  content_en     String?  @db.Text
+  content_th     String?  @db.Text
+  category       String?
+  icon           String?
+  image_url      String?
+  is_published   Int      @default(1)
+  is_featured    Int      @default(0)
+  sort_order     Int?
+  created_at     DateTime @default(now())
+}
+
+model portfolio {
+  id              Int       @id @default(autoincrement())
+  slug            String    @unique
+  title_en        String?
+  title_th        String?
+  description_en  String?   @db.Text
+  description_th  String?   @db.Text
+  content_en      String?   @db.Text
+  content_th      String?   @db.Text
+  client_name_en  String?
+  client_name_th  String?
+  industry        String?
+  challenge_en    String?   @db.Text
+  challenge_th    String?   @db.Text
+  solution_en     String?   @db.Text
+  solution_th     String?   @db.Text
+  result_en       String?   @db.Text
+  result_th       String?   @db.Text
+  cover_image     String?
+  completion_date DateTime?
+  website_url     String?
+  gallery         Json?
+  tags            Json?
+  tech_stack      Json?
+  is_published    Int       @default(1)
+  is_featured     Int       @default(0)
+  sort_order      Int?
+  created_at      DateTime  @default(now())
+}
+
+model clients {
+  id           Int      @id @default(autoincrement())
+  name         String?
+  logo_url     String?
+  category     String?
+  is_published Int      @default(1)
+  is_featured  Int      @default(0)
+  sort_order   Int?
+  created_at   DateTime @default(now())
+}
+
+model services {
+  id             Int      @id @default(autoincrement())
+  slug           String   @unique
+  title_en       String?
+  title_th       String?
+  description_en String?  @db.Text
+  description_th String?  @db.Text
+  content_en     String?  @db.Text
+  content_th     String?  @db.Text
+  icon           String?
+  image_url      String?
+  is_published   Int      @default(1)
+  is_featured    Int      @default(0)
+  sort_order     Int?
+  created_at     DateTime @default(now())
+}
+
+model press {
+  id           Int      @id @default(autoincrement())
+  slug         String   @unique
+  title_en     String?
+  title_th     String?
+  category     String?
+  image_url    String?
+  author       String?
+  excerpt_en   String?  @db.Text
+  excerpt_th   String?  @db.Text
+  content_en   String?  @db.Text
+  content_th   String?  @db.Text
+  is_published Int      @default(1)
+  published_at DateTime @default(now())
+  created_at   DateTime @default(now())
+}
+
+model careers {
+  id                  Int          @id @default(autoincrement())
+  slug                String       @unique
+  title_en            String?
+  title_th            String?
+  department          String?
+  location            String?
+  employment_type     String?
+  description_en      String?      @db.Text
+  description_th      String?      @db.Text
+  requirements_en     String?      @db.Text
+  requirements_th     String?      @db.Text
+  responsibilities_en String?      @db.Text
+  responsibilities_th String?      @db.Text
+  status              String       @default("open")
+  created_at          DateTime     @default(now())
+  applicants          applicants[]
+}
+
+model applicants {
+  id         Int      @id @default(autoincrement())
+  career_id  Int?
+  name       String?
+  email      String?
+  phone      String?
+  cv_url     String?
+  notes      String?
+  status     String   @default("new")
+  created_at DateTime @default(now())
+  careers    careers? @relation(fields: [career_id], references: [id])
+}
+
+model leads {
+  id         Int      @id @default(autoincrement())
+  name       String?
+  email      String?
+  company    String?
+  phone      String?
+  message    String?  @db.Text
+  status     String   @default("new")
+  notes      String?
+  created_at DateTime @default(now())
+}
+
+model media {
+  id         Int      @id @default(autoincrement())
+  filename   String?
+  url        String?
+  alt_text   String?
+  folder     String   @default("general")
+  created_at DateTime @default(now())
+}
+
+model settings {
+  id    Int    @id @default(autoincrement())
+  key   String @unique
+  value Json?
+}
+
+model ai_knowledge {
+  id         Int      @id @default(autoincrement())
+  title      String?
+  content    String?  @db.Text
+  category   String?
+  is_active  Int      @default(1)
+  created_at DateTime @default(now())
+}
+
+model ai_logs {
+  id               Int      @id @default(autoincrement())
+  session_id       String?
+  user_message     String?  @db.Text
+  ai_response      String?  @db.Text
+  sentiment        String?
+  is_lead_captured Int      @default(0)
+  created_at       DateTime @default(now())
+}
+
+model ai_image_history {
+  id         Int      @id @default(autoincrement())
+  prompt     String?  @db.Text
+  image_url  String?
+  created_at DateTime @default(now())
+}
+
+model hero_banners {
+  id             Int      @id @default(autoincrement())
+  title_en       String?
+  title_th       String?
+  subtitle_en    String?
+  subtitle_th    String?
+  description_en String?  @db.Text
+  description_th String?  @db.Text
+  media_type     String   @default("image")
+  media_url      String?
+  button_text_en String?
+  button_text_th String?
+  button_link    String?
+  sort_order     Int      @default(0)
+  is_active      Int      @default(1)
+  created_at     DateTime @default(now())
+}
+
+model changelog {
+  id           Int      @id @default(autoincrement())
+  version      String?
+  title_en     String?
+  title_th     String?
+  content_en   String?  @db.Text
+  content_th   String?  @db.Text
+  type         String   @default("improvement")
+  is_published Int      @default(1)
+  published_at DateTime @default(now())
+  created_at   DateTime @default(now())
+}
