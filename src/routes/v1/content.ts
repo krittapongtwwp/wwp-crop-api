@@ -26,8 +26,6 @@ const ALLOWED_TABLES = [
   'changelog'
 ]
 
-const doc = createApiDoc('/v1/content')
-
 // ## Schema
 const applyBody = z.object({
   job_id: z.number(),
@@ -76,6 +74,8 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage })
 
 const router = Router()
+// const doc = createApiDoc('/api/v1/content')
+const doc = createApiDoc('/api/content')
 
 router.post(
   '/careers/apply',

@@ -8,7 +8,8 @@ import { prisma } from '@/libs/prisma.ts'
 import { createApiDoc } from '@/middlewares/scalar.factory'
 import { AuthedRequest, authenticateToken } from '@/middlewares/auth'
 
-const doc = createApiDoc('/v1/auth')
+// const doc = createApiDoc('/api/v1/auth')
+const doc = createApiDoc('/api/auth')
 
 // ## Schema
 const loginBody = z.object({
