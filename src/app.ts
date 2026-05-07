@@ -6,20 +6,19 @@ import cors from 'cors'
 import { handleMultipart } from '@/middlewares/multer.ts'
 import router from '@/routes'
 
-import path from 'path'
-import { prisma } from './libs/prisma.ts'
+// import path from 'path'
+// import { prisma } from './libs/prisma.ts'
 
 // import { initDb } from './db.ts'
-import authRoutes from './routes/auth.ts'
-import contentRoutes from './routes/content.ts'
-import mediaRoutes from './routes/media.ts'
-import aiRoutes from './routes/ai.ts'
+// import contentRoutes from './routes/content.ts'
+// import mediaRoutes from './routes/media.ts'
+// import aiRoutes from './routes/ai.ts'
 
 const app = express()
 
 app.use(
   session({
-    secret: process.env.JWT_ACCESS_SECRET || 'your-secret-key-change-in-production',
+    secret: process.env.JWT_SECRET || 'your-secret-key-change-in-production',
     resave: false,
     saveUninitialized: false,
     cookie: {
@@ -63,7 +62,7 @@ const corsOptions = {
   ]
 }
 app.use(cors(corsOptions))
-app.use('/api', router)
+app.use(router)
 
 export default app
 
