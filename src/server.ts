@@ -1,20 +1,25 @@
-import dotenv from "dotenv"
+import dotenv from 'dotenv'
+import express from 'express'
+
+import app from '@/app.ts'
+import { generateOpenApiSpec } from './utils/openapi-registry'
+
 dotenv.config()
-
-import express from "express"
-import app from "@/app.ts"
-
-const PORT = Number(process.env.PORT) || 3000;
+const PORT = Number(process.env.PORT) || 3000
 
 async function loadScalarExpressAPIReference(): Promise<typeof import('@scalar/express-api-reference')> {
-	return new Function('return import("@scalar/express-api-reference")')() as Promise<
+  return new Function('return import("@scalar/express-api-reference")')() as Promise<
     typeof import('@scalar/express-api-reference')
   >
 }
-async function bootstrap(): Promise<void>{
-	const { apiReference } = await loadScalarExpressAPIReference();
+async function bootstrap(): Promise<void> {
+  const { apiReference } = await loadScalarExpressAPIReference()
 
-	app.use(
+  app.get('/openapi.json', (req, res) => {
+    res.json(generateOpenApiSpec())
+  })
+
+  app.use(
     '/docs',
     apiReference({
       url: '/openapi.json',
@@ -23,29 +28,29 @@ async function bootstrap(): Promise<void>{
     })
   )
 
-	app.use((req: express.Request, res: express.Response) => {
+  app.use((req: express.Request, res: express.Response) => {
     res.status(404).json({ message: `Not Found - ${req.url}` })
   })
 
-	const server = app.listen(PORT, () => {
-		console.log(
-				`Server ${process.env.APP} is running on http://localhost:${PORT} 🚀 \nView API documentation at http://localhost:${PORT}/docs 📖`,
-		);
-	});
+  const server = app.listen(PORT, () => {
+    console.log(
+      `Server ${process.env.APP} is running on http://localhost:${PORT} 🚀 \nView API documentation at http://localhost:${PORT}/docs 📖`
+    )
+  })
 
-	const shutdown = (signal: string) => {
-		console.log(`\n${signal} received. Shutting down gracefully...`);
-		server.close(() => {
+  const shutdown = (signal: string) => {
+    console.log(`\n${signal} received. Shutting down gracefully...`)
+    server.close(() => {
       console.log('Server closed.')
       process.exit(0)
     })
-	};
+  }
 
-	process.on("SIGTERM", () => shutdown("SIGTERM"));
-	process.on("SIGINT", () => shutdown("SIGINT"));
+  process.on('SIGTERM', () => shutdown('SIGTERM'))
+  process.on('SIGINT', () => shutdown('SIGINT'))
 }
 
 bootstrap().catch((err) => {
-    console.error(err);
-    process.exit(1);
-});
+  console.error(err)
+  process.exit(1)
+})
