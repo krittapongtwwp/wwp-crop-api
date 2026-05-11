@@ -7,6 +7,8 @@ import { z } from 'zod'
 import { createApiDoc } from '@/middlewares/scalar.factory'
 import { authenticateToken } from '@/middlewares/auth'
 import { prisma } from '@/libs/prisma.ts'
+import { config } from '@/constants/config'
+import { validateUploadedFile } from '@/middlewares/validation-upload'
 
 const ALLOWED_TABLES = [
   'homepage_sections',
@@ -28,7 +30,7 @@ const ALLOWED_TABLES = [
 
 // ## Schema
 const applyBody = z.object({
-  job_id: z.number(),
+  job_id: z.string(),
   first_name: z.string(),
   last_name: z.string(),
   email: z.email(),
@@ -62,16 +64,26 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir)
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     cb(null, uploadsDir)
+//   },
+//   filename: function (req, file, cb) {
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+//     cb(null, uniqueSuffix + path.extname(file.originalname))
+//   }
+// })
+// const upload = multer({ storage: storage })
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 10 * 1024 * 1024, files: 1 }, // 10 MB
+  fileFilter: (_req, file, cb) => {
+    if (!config.upload.allowedDocMimeType.includes(file.mimetype)) {
+      return cb(new Error('INVALID_FILE_TYPE'))
+    }
+    cb(null, true)
   }
 })
-const upload = multer({ storage: storage })
 
 const router = Router()
 // const doc = createApiDoc('/api/v1/content')
@@ -85,6 +97,7 @@ router.post(
     detail: { summary: 'Upload file resumea', tags: ['Content'] }
   }),
   upload.single('resume'),
+  validateUploadedFile,
   uploadResume
 )
 
@@ -180,7 +193,7 @@ async function uploadResume(req: Request, res: Response) {
   try {
     const result = await prisma.applicants.create({
       data: {
-        career_id: job_id,
+        career_id: Number(job_id),
         name: name,
         email: email,
         phone: phone,
