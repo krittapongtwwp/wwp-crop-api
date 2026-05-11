@@ -32,7 +32,7 @@ app.use(
 app.use(json())
 app.use(urlencoded({ extended: true }))
 app.use(cookieParser())
-app.use(handleMultipart)
+// app.use(handleMultipart)
 
 const corsOptions = {
   origin: (origin, callback) => {
