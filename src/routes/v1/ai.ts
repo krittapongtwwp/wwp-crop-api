@@ -1,31 +1,52 @@
-import express from 'express';
-// import { getDb } from '../db.ts';
+import { Router, Request, Response, NextFunction } from 'express'
+import { z } from 'zod'
+
+import { createApiDoc } from '@/middlewares/scalar.factory'
+import { zvalidate } from '@/middlewares/validation'
 import { prisma } from '@/libs/prisma.ts'
 
-const router = express.Router();
+const router = Router()
+const doc = createApiDoc('/api/ai')
+
+// ## Schema
+const saveImageHistoryBody = z.object({
+  prompt: z.string().min(1),
+  imageUrl: z.url()
+})
+const saveImageHistoryResponse = z.object({ success: z.boolean(), id: z.number() })
+// ##
 
 // Endpoint to save AI image generation history
-router.post('/save-image-history', async (req, res) => {
+router.post(
+  '/save-image-history',
+  doc({
+    path: '/save-image-history',
+    method: 'post',
+    detail: { summary: 'Save AI image generage history', tags: ['AI'] },
+    body: saveImageHistoryBody,
+    response: saveImageHistoryResponse
+  }),
+  zvalidate({ body: saveImageHistoryBody }),
+  saveImageHistory
+)
+
+async function saveImageHistory(req: Request, res: Response) {
+  const { prompt, imageUrl } = req.body as z.infer<typeof saveImageHistoryBody>
   try {
-    const { prompt, imageUrl } = req.body;
-    
-    if (!prompt || !imageUrl) {
-      return res.status(400).json({ error: 'Prompt and imageUrl are required' });
+    const result = await prisma.ai_image_history.create({
+      data: {
+        prompt: prompt,
+        image_url: imageUrl
+      }
+    })
+    const response: z.infer<typeof saveImageHistoryResponse> = {
+      success: true,
+      id: result.id
     }
-
-    // const db = getDb();
-    // db.prepare('INSERT INTO ai_image_history (prompt, image_url) VALUES (?, ?)').run(prompt, imageUrl);
-		const result = await prisma.ai_image_history.create({
-			data: {
-				prompt: prompt,
-				image_url: imageUrl,
-			}
-		})
-    res.json({ success: true });
-  } catch (error) {
-    // console.error('Failed to save AI image history:', error);
-    res.status(500).json({ error: 'Failed to save history', details: error.message });
+    res.json(response)
+  } catch (err: any) {
+    res.status(500).json({ error: 'Failed to save ai history', details: err.message })
   }
-});
+}
 
-export default router;
+export default router

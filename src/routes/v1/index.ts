@@ -10,5 +10,6 @@ const router = Router()
 router.use('/auth', authRouter)
 router.use('/content', contentRouter)
 router.use('/media', mediaRouter)
+router.use('/ai', aiRouter)
 
 export default router
