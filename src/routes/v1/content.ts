@@ -324,7 +324,8 @@ async function createTable(req: Request, res: Response) {
 
   const { table } = paramResult.data
   const model = prisma[table]
-  const data = bodyResult.data
+  // const data = bodyResult.data
+  const data = normalizeTableBody(table, bodyResult.data)
   try {
     const result = await model.create({ data })
     const response: z.infer<typeof genericResponse> = {
@@ -394,6 +395,25 @@ async function deleteTableById(req: Request, res: Response) {
     console.error(`DELETE_TABLE_BY_ID_ERROR (${table}/${id}):`, err)
     res.status(500).json({ error: err.message })
   }
+}
+
+/**
+ * TEMP: frontend ส่งข้อมูลไม่ตรงใน db
+ */
+const tableNormalizers: Record<string, (data: any) => any> = {
+  portfolio: (data) => {
+    if (!('client_name' in data)) return data
+    const { client_name, ...rest } = data
+    return {
+      ...rest,
+      client_name_en: rest.client_name_en ?? client_name,
+      client_name_th: rest.client_name_th ?? client_name
+    }
+  }
+}
+
+function normalizeTableBody(table: string, data: any) {
+  return tableNormalizers[table]?.(data) ?? data
 }
 
 export default router
