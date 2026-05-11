@@ -14,7 +14,7 @@ export const config = {
       path: process.env.UPLOAD_LOCAL_PATH || 'upload'
     },
     publicBaseUrl: (process.env.API_PUBLIC_URL || '').replace(/\/+$/, ''),
-    allowedImgMimeType: ['image/jpeg', 'image/png'],
+    allowedImgMimeType: ['image/jpeg', 'image/png', 'image/webp'],
     allowedDocMimeType: [
       'application/pdf',
       'application/msword',
