@@ -1,6 +1,7 @@
 import express, { json, urlencoded } from 'express'
 import session from 'express-session'
 import cookieParser from 'cookie-parser'
+import path from 'path'
 import cors from 'cors'
 
 import { handleMultipart } from '@/middlewares/multer.ts'
@@ -33,6 +34,7 @@ app.use(json())
 app.use(urlencoded({ extended: true }))
 app.use(cookieParser())
 // app.use(handleMultipart)
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')))
 
 const corsOptions = {
   origin: (origin, callback) => {
