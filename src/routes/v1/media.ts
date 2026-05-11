@@ -8,6 +8,7 @@ import { createApiDoc } from '@/middlewares/scalar.factory'
 import { authenticateToken } from '@/middlewares/auth'
 import { zvalidate } from '@/middlewares/validation'
 import { prisma } from '@/libs/prisma.ts'
+import { config } from '@/constants/config'
 
 // ## Schema
 const idParam = z.object({ id: z.string().regex(/^\d+$/) })
@@ -19,8 +20,8 @@ const uploadResponse = z.object({
   id: z.number(),
   filename: z.string(),
   url: z.string(),
-  alt_text: z.string(),
-  folder: z.string()
+  alt_text: z.string().optional(),
+  folder: z.string().optional()
 })
 // const mediaItem = z.object({
 //   id: z.number(),
@@ -40,16 +41,33 @@ const uploadsDir = path.join(process.cwd(), 'uploads')
 if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true })
 }
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    cb(null, uploadsDir)
-  },
-  filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
-    cb(null, uniqueSuffix + path.extname(file.originalname))
+// const storage = multer.diskStorage({
+//   destination: function (req, file, cb) {
+//     // cb(null, uploadsDir)
+//     const folder = sanitizeFolder(req.body?.folder)
+//     const targetDir = path.join(uploadsDir, folder)
+
+//     fs.mkdir(targetDir, { recursive: true }, (err) => {
+//       if (err) return cb(err, '')
+//       cb(null, targetDir)
+//     })
+//   },
+//   filename: function (req, file, cb) {
+//     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9)
+//     cb(null, uniqueSuffix + path.extname(file.originalname))
+//   }
+// })
+// const upload = multer({ storage: storage })
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 60 * 1024 * 1024 }, // 60 MB
+  fileFilter: (_req, file, cb) => {
+    if (!config.upload.allowedImgMimeType.includes(file.mimetype)) {
+      return cb(new Error('INVALID_FILE_TYPE'))
+    }
+    cb(null, true)
   }
 })
-const upload = multer({ storage: storage })
 
 const router = Router()
 const doc = createApiDoc('/api/media')
@@ -111,32 +129,43 @@ async function uploadMedia(req: Request, res: Response) {
   if (!req.file) {
     return res.status(400).json({ error: 'No file uploaded' })
   }
-
   const { alt_text, folder } = req.body as z.infer<typeof uploadBody>
-  const url = `/uploads/${req.file.filename}`
+  const foldername = sanitizeFolder(folder)
+  const filename = `${formatDateYYMMDD()}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`
+
+  const targetDir = path.join(uploadsDir, foldername)
+  const filePath = path.join(targetDir, filename)
+  const url = `/uploads/${foldername}/${filename}`
+
+  let fileWritten = false
   try {
+    await fs.promises.mkdir(targetDir, { recursive: true })
+    await fs.promises.writeFile(filePath, req.file.buffer)
+    fileWritten = true
+
     const result = await prisma.media.create({
       data: {
-        filename: req.file.filename,
+        filename: filename,
         url: url,
         alt_text: alt_text || req.file.originalname,
-        folder: folder || 'general'
+        folder: foldername
       }
     })
     const response: z.infer<typeof uploadResponse> = {
       id: result.id,
+      alt_text: result.alt_text ?? undefined,
       filename: result.filename,
       url: result.url,
-      alt_text: result.alt_text,
-      folder: result.folder
+      folder: result.folder ?? undefined
     }
     res.json(response)
   } catch (err: any) {
+    if (fileWritten) await fs.promises.unlink(filePath).catch(() => {})
     res.status(500).json({ error: 'MEDIA_ERROR', details: err.message })
   }
 }
 
-async function deleteMedia(req, res) {
+async function deleteMedia(req: Request, res: Response) {
   const { id } = req.params as z.infer<typeof idParam>
   const numId = Number(id)
   try {
@@ -147,9 +176,12 @@ async function deleteMedia(req, res) {
       return res.status(404).json({ error: 'Not found' })
     }
 
-    if (result.filename) {
-      const filePath = path.join(uploadsDir, result.filename)
-      if (fs.existsSync(filePath)) await fs.promises.unlink(filePath)
+    if (result.filename && result.folder) {
+      const filePath = path.join(uploadsDir, result.folder, result.filename)
+      // if (fs.existsSync(filePath)) await fs.promises.unlink(filePath)
+      await fs.promises.unlink(filePath).catch((err) => {
+        if (err.code !== 'ENOENT') throw err
+      })
     }
 
     await prisma.media.delete({ where: { id: numId } })
@@ -161,4 +193,19 @@ async function deleteMedia(req, res) {
     res.status(500).json({ error: 'MEDIA_ERROR', details: err.message })
   }
 }
+
+function sanitizeFolder(input?: string): string {
+  const defaultFolder = 'general'
+  if (!input) return defaultFolder
+  const clean = input.toLowerCase().replace(/[^a-z0-9_-]/g, '')
+  return clean || defaultFolder
+}
+
+function formatDateYYMMDD(d: Date = new Date()): string {
+  const yy = d.getFullYear()
+  const mm = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  return `${yy}${mm}${dd}`
+}
+
 export default router

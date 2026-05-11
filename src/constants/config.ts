@@ -13,6 +13,7 @@ export const config = {
     local: {
       path: process.env.UPLOAD_LOCAL_PATH || 'upload'
     },
-    publicBaseUrl: (process.env.API_PUBLIC_URL || '').replace(/\/+$/, '')
+    publicBaseUrl: (process.env.API_PUBLIC_URL || '').replace(/\/+$/, ''),
+    allowedImgMimeType: ['image/jpeg', 'image/png']
   }
 }
