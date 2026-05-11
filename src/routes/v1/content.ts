@@ -6,6 +6,7 @@ import { z } from 'zod'
 
 import { createApiDoc } from '@/middlewares/scalar.factory'
 import { authenticateToken } from '@/middlewares/auth'
+import { zvalidate } from '@/middlewares/validation'
 import { prisma } from '@/libs/prisma.ts'
 import { config } from '@/constants/config'
 import { validateUploadedFile } from '@/middlewares/validation-upload'
@@ -45,7 +46,6 @@ const leadBody = z.object({
   phone: z.string().optional(),
   message: z.string()
 })
-const leadResponse = z.object({ success: z.boolean(), id: z.number() })
 const tableParam = z.object({ table: z.enum(ALLOWED_TABLES) })
 const tableIdParam = z.object({ table: z.enum(ALLOWED_TABLES), id: z.string() })
 const tableBody = z.object({}).loose()
@@ -54,8 +54,8 @@ const listQuery = z.object({
   _sort: z.string().optional(),
   _order: z.string().optional()
 })
+const createResponse = z.object({ success: z.boolean(), id: z.number() })
 const genericResponse = z.object({ success: z.boolean(), data: z.any().optional() })
-const errorResponse = z.object({ error: z.string() })
 // ##
 
 // Ensure ./uploads directory exists
@@ -86,7 +86,6 @@ const upload = multer({
 })
 
 const router = Router()
-// const doc = createApiDoc('/api/v1/content')
 const doc = createApiDoc('/api/content')
 
 router.post(
@@ -94,9 +93,12 @@ router.post(
   doc({
     path: '/careers/apply',
     method: 'post',
-    detail: { summary: 'Upload file resumea', tags: ['Content'] }
+    detail: { summary: 'Upload file resumea', tags: ['Content'] },
+    body: applyBody,
+    response: createResponse
   }),
   upload.single('resume'),
+  zvalidate({ body: applyBody }),
   validateUploadedFile,
   uploadResume
 )
@@ -108,8 +110,9 @@ router.post(
     method: 'post',
     detail: { summary: 'Sumbit contact lead', tags: ['Content'] },
     body: leadBody,
-    response: leadResponse
+    response: createResponse
   }),
+  zvalidate({ body: leadBody }),
   createLead
 )
 
@@ -122,6 +125,7 @@ router.get(
     params: tableParam,
     query: listQuery
   }),
+  zvalidate({ params: tableParam, query: listQuery }),
   getTable
 )
 
@@ -134,6 +138,7 @@ router.get(
     params: tableIdParam,
     response: genericResponse
   }),
+  zvalidate({ params: tableIdParam }),
   getTableById
 )
 
@@ -148,6 +153,7 @@ router.post(
     response: genericResponse
   }),
   authenticateToken,
+  zvalidate({ params: tableBody, body: tableBody }),
   createTable
 )
 
@@ -162,6 +168,7 @@ router.put(
     response: genericResponse
   }),
   authenticateToken,
+  zvalidate({ params: tableIdParam, body: tableBody }),
   updateTableById
 )
 
@@ -175,19 +182,20 @@ router.delete(
     response: genericResponse
   }),
   authenticateToken,
+  zvalidate({ params: tableIdParam }),
   deleteTableById
 )
 
 async function uploadResume(req: Request, res: Response) {
-  const result = applyBody.safeParse(req.body)
-  if (!result.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: result.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const result = applyBody.safeParse(req.body)
+  // if (!result.success) {
+  //   return res.status(400).json({ error: '' })
+  // }
+  // const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = result.data
 
-  const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = result.data
+  const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = req.body as z.infer<
+    typeof applyBody
+  >
   const name = `${first_name} ${last_name}`
   const cv_url = req.file ? `/uploads/${req.file.filename}` : null
   try {
@@ -202,7 +210,11 @@ async function uploadResume(req: Request, res: Response) {
         status: 'new'
       }
     })
-    res.json({ success: true, id: result.id })
+    const response: z.infer<typeof createResponse> = {
+      success: true,
+      id: result.id
+    }
+    res.status(200).json(response)
   } catch (err: any) {
     console.error('APPLY_ERROR:', err)
     res.status(500).json({ error: err.message })
@@ -210,15 +222,16 @@ async function uploadResume(req: Request, res: Response) {
 }
 
 async function createLead(req: Request, res: Response) {
-  const result = leadBody.safeParse(req.body)
-  if (!result.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: result.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const result = leadBody.safeParse(req.body)
+  // if (!result.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: result.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { name, email, company, phone, message } = result.data
 
-  const { name, email, company, phone, message } = result.data
+  const { name, email, company, phone, message } = req.body as z.infer<typeof leadBody>
   try {
     const result = await prisma.leads.create({
       data: {
@@ -230,7 +243,7 @@ async function createLead(req: Request, res: Response) {
         status: 'new'
       }
     })
-    const response: z.infer<typeof leadResponse> = {
+    const response: z.infer<typeof createResponse> = {
       success: true,
       id: result.id
     }
@@ -242,24 +255,25 @@ async function createLead(req: Request, res: Response) {
 }
 
 async function getTable(req: Request, res: Response) {
-  const paramResult = tableParam.safeParse(req.params)
-  if (!paramResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: paramResult.error.message
-    }
-    return res.status(400).json(response)
-  }
-  const queryResult = listQuery.safeParse(req.query)
-  if (!queryResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: queryResult.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const paramResult = tableParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const queryResult = listQuery.safeParse(req.query)
+  // if (!queryResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: queryResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { is_published, _sort, _order } = queryResult.data
+  // const { table } = paramResult.data
 
-  const { is_published, _sort, _order } = queryResult.data
-  const { table } = paramResult.data
-
+  const { is_published, _sort, _order } = req.query as z.infer<typeof listQuery>
+  const { table } = req.params as z.infer<typeof tableParam>
   const model = prisma[table]
   try {
     const whereClaues: any = {}
@@ -297,15 +311,16 @@ async function getTable(req: Request, res: Response) {
 }
 
 async function getTableById(req: Request, res: Response) {
-  const result = tableIdParam.safeParse(req.params)
-  if (!result.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: result.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const result = tableIdParam.safeParse(req.params)
+  // if (!result.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: result.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table, id } = result.data
 
-  const { table, id } = result.data
+  const { table, id } = req.params as z.infer<typeof tableIdParam>
   const model = prisma[table]
   const numId = Number(id)
   const where = Number.isInteger(numId) && id.trim() !== '' ? { id: numId } : { slug: id }
@@ -320,25 +335,27 @@ async function getTableById(req: Request, res: Response) {
 }
 
 async function createTable(req: Request, res: Response) {
-  const paramResult = tableParam.safeParse(req.params)
-  if (!paramResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: paramResult.error.message
-    }
-    return res.status(400).json(response)
-  }
-  const bodyResult = tableBody.safeParse(req.body)
-  if (!bodyResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: bodyResult.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const paramResult = tableParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const bodyResult = tableBody.safeParse(req.body)
+  // if (!bodyResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: bodyResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table } = paramResult.data
+  // const model = prisma[table]
 
-  const { table } = paramResult.data
+  const { table } = req.params as z.infer<typeof tableParam>
+  const resultData = req.body as z.infer<typeof tableBody>
   const model = prisma[table]
-  // const data = bodyResult.data
-  const data = normalizeTableBody(table, bodyResult.data)
+  const data = normalizeTableBody(table, resultData)
   try {
     const result = await model.create({ data })
     const response: z.infer<typeof genericResponse> = {
@@ -353,24 +370,26 @@ async function createTable(req: Request, res: Response) {
 }
 
 async function updateTableById(req: Request, res: Response) {
-  const paramResult = tableIdParam.safeParse(req.params)
-  if (!paramResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: paramResult.error.message
-    }
-    return res.status(400).json(response)
-  }
-  const bodyResult = tableBody.safeParse(req.body)
-  if (!bodyResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: bodyResult.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const paramResult = tableIdParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const bodyResult = tableBody.safeParse(req.body)
+  // if (!bodyResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: bodyResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table, id } = paramResult.data
+  // const data = bodyResult.data
 
-  const { table, id } = paramResult.data
+  const { table, id } = req.params as z.infer<typeof tableIdParam>
+  const data = req.body as z.infer<typeof tableBody>
   const model = prisma[table]
-  const data = bodyResult.data
   try {
     const result = await model.update({ where: { id: Number(id) }, data })
     const response: z.infer<typeof genericResponse> = {
@@ -385,15 +404,16 @@ async function updateTableById(req: Request, res: Response) {
 }
 
 async function deleteTableById(req: Request, res: Response) {
-  const paramResult = tableIdParam.safeParse(req.params)
-  if (!paramResult.success) {
-    const response: z.infer<typeof errorResponse> = {
-      error: paramResult.error.message
-    }
-    return res.status(400).json(response)
-  }
+  // const paramResult = tableIdParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table, id } = paramResult.data
 
-  const { table, id } = paramResult.data
+  const { table, id } = req.params as z.infer<typeof tableIdParam>
   const model = prisma[table]
   try {
     const result = await model.delete({
