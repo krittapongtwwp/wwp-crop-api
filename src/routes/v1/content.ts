@@ -409,6 +409,14 @@ const tableNormalizers: Record<string, (data: any) => any> = {
       client_name_en: rest.client_name_en ?? client_name,
       client_name_th: rest.client_name_th ?? client_name
     }
+  },
+  press: (data) => {
+    if (!('cover_image' in data)) return data
+    const { cover_image, ...rest } = data
+    return {
+      ...rest,
+      image_url: rest.image_url ?? cover_image
+    }
   }
 }
 
