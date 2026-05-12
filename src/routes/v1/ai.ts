@@ -8,6 +8,7 @@ import { createApiDoc } from '@/middlewares/scalar.factory'
 import { zvalidate } from '@/middlewares/validation'
 import { prisma } from '@/libs/prisma.ts'
 import { authenticateToken } from '@/middlewares/auth'
+import { ai_knowledge } from '@/database/generated/prisma'
 
 const AI_IMAGES_FOLDER = 'ai_images'
 const AI_IMAGES_DIR = path.join(process.cwd(), 'uploads', AI_IMAGES_FOLDER)
@@ -172,15 +173,84 @@ async function saveImageHistory(req: Request, res: Response) {
 
 async function chatWithAI(req: Request, res: Response) {
   const { message } = req.body as z.infer<typeof chatBody>
+  const keywords = extractKeywords(message)
   try {
+    const knowledge =
+      keywords.length > 0
+        ? await prisma.ai_knowledge.findMany({
+            where: {
+              is_active: 1,
+              OR: keywords.flatMap((kw) => [
+                { title: { contains: kw } },
+                { category: { contains: kw } },
+                { content: { contains: kw } }
+              ])
+            },
+            select: { title: true, content: true, category: true },
+            take: 10
+          })
+        : []
+
     const data = await ai.models.generateContent({
       model: model,
-      contents: message
+      contents: message,
+      config: { systemInstruction: systemInstruction(knowledge) }
     })
     res.json({ text: data.text })
   } catch (err: any) {
     res.status(500).json({ error: 'Failed to chat with ai', details: err.message })
   }
+}
+
+type KnowledgeItem = Pick<ai_knowledge, 'title' | 'content' | 'category'>
+
+function systemInstruction(knowledge: KnowledgeItem[]): string {
+  if (knowledge.length === 0) return ''
+
+  const knowledgeText = knowledge
+    .map((k, i) => `[${i + 1}] title: ${k.title ?? '-'}\category: ${k.category ?? '-'}\nเนื้อหา: ${k.content ?? '-'}`)
+    .join('\n\n')
+  return `You are a helper in answering website questions.
+		Answer rules:
+		- Only consider the "Knowledge Base" below.
+		- It is not necessary to state "Sorry, no information found."
+		- You can add your own information.
+		- Write the same answer as the user asked (if the user asked in Thai, answer in English if the question is in English).
+		- The information in the Knowledge Base is in a different language than the question; translate it before answering.
+		- Keep your words concise and clear.
+		=== Knowledge Base ===
+		${knowledgeText}`
+}
+
+function extractKeywords(text: string): string[] {
+  const STOPWORDS = new Set([
+    'คือ',
+    'อะไร',
+    'ทำไม',
+    'อย่างไร',
+    'ไหม',
+    'ครับ',
+    'ค่ะ',
+    'ของ',
+    'ที่',
+    'และ',
+    'หรือ',
+    'what',
+    'is',
+    'how',
+    'why',
+    'the',
+    'a',
+    'an',
+    'do',
+    'i',
+    'to'
+  ])
+  return text
+    .toLowerCase()
+    .replace(/[?!.,]/g, ' ')
+    .split(/\s+/)
+    .filter((w) => w.length >= 2 && !STOPWORDS.has(w))
 }
 
 function mimeToExt(mime?: string): string {
