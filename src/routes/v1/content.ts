@@ -464,6 +464,14 @@ const tableNormalizers: Record<string, (data: any) => any> = {
       ...rest,
       image_url: rest.image_url ?? cover_image
     }
+  },
+  changelog: (data) => {
+    if (!('published_at' in data)) return data
+    const { published_at, ...rest } = data
+    return {
+      ...rest,
+      published_at: new Date(published_at)
+    }
   }
 }
 
