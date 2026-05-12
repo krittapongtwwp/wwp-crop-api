@@ -196,9 +196,22 @@ async function uploadResume(req: Request, res: Response) {
   const { job_id, first_name, last_name, email, phone, portfolio_url, cover_letter } = req.body as z.infer<
     typeof applyBody
   >
+
+  // ## file manage
+  const foldername = 'resume'
+  const filename = `${first_name.slice(0, 5)}-${last_name.slice(0, 5)}-${Math.round(Math.random() * 1e9)}${path.extname(req.file.originalname)}`
+  const targetDir = path.join(uploadsDir, foldername)
+  const filePath = path.join(targetDir, filename)
+
   const name = `${first_name} ${last_name}`
-  const cv_url = req.file ? `/uploads/${req.file.filename}` : null
+  const cv_url = `/uploads/${foldername}/${filename}`
+
+  let fileWritten = false
   try {
+    await fs.promises.mkdir(targetDir, { recursive: true })
+    await fs.promises.writeFile(filePath, req.file.buffer)
+    fileWritten = true
+
     const result = await prisma.applicants.create({
       data: {
         career_id: Number(job_id),
@@ -216,6 +229,7 @@ async function uploadResume(req: Request, res: Response) {
     }
     res.status(200).json(response)
   } catch (err: any) {
+    if (fileWritten) await fs.promises.unlink(filePath).catch(() => {})
     console.error('APPLY_ERROR:', err)
     res.status(500).json({ error: err.message })
   }
