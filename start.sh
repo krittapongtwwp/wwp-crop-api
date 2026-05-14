@@ -6,4 +6,4 @@ npx prisma migrate deploy
 # npx tsx prisma/seed/seed.ts
 
 echo "Starting server..."
-npx tsx server.ts
+npx tsx ./src/server.ts
