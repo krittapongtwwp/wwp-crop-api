@@ -24,6 +24,7 @@ const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
 
 // ## Schema
 const chatBody = z.object({
+  session_id: z.string().optional(),
   message: z.string().min(1).max(2000)
 })
 const genContentBody = z.object({
@@ -139,40 +140,40 @@ router.post(
 )
 
 // Endpoint to save AI image generation history
-router.post(
-  '/save-image-history',
-  doc({
-    path: '/save-image-history',
-    method: 'post',
-    detail: { summary: 'Save AI image generage history', tags: ['AI'] },
-    body: saveImageHistoryBody,
-    response: saveImageHistoryResponse
-  }),
-  zvalidate({ body: saveImageHistoryBody }),
-  saveImageHistory
-)
+// router.post(
+//   '/save-image-history',
+//   doc({
+//     path: '/save-image-history',
+//     method: 'post',
+//     detail: { summary: 'Save AI image generage history', tags: ['AI'] },
+//     body: saveImageHistoryBody,
+//     response: saveImageHistoryResponse
+//   }),
+//   zvalidate({ body: saveImageHistoryBody }),
+//   saveImageHistory
+// )
 
-async function saveImageHistory(req: Request, res: Response) {
-  const { prompt, image_url } = req.body as z.infer<typeof saveImageHistoryBody>
-  try {
-    const result = await prisma.ai_image_history.create({
-      data: {
-        prompt: prompt,
-        image_url: image_url
-      }
-    })
-    const response: z.infer<typeof saveImageHistoryResponse> = {
-      success: true,
-      id: result.id
-    }
-    res.json(response)
-  } catch (err: any) {
-    res.status(500).json({ error: 'Failed to save ai history', details: err.message })
-  }
-}
+// async function saveImageHistory(req: Request, res: Response) {
+//   const { prompt, image_url } = req.body as z.infer<typeof saveImageHistoryBody>
+//   try {
+//     const result = await prisma.ai_image_history.create({
+//       data: {
+//         prompt: prompt,
+//         image_url: image_url
+//       }
+//     })
+//     const response: z.infer<typeof saveImageHistoryResponse> = {
+//       success: true,
+//       id: result.id
+//     }
+//     res.json(response)
+//   } catch (err: any) {
+//     res.status(500).json({ error: 'Failed to save ai history', details: err.message })
+//   }
+// }
 
 async function chatWithAI(req: Request, res: Response) {
-  const { message } = req.body as z.infer<typeof chatBody>
+  const { session_id, message } = req.body as z.infer<typeof chatBody>
   const keywords = extractKeywords(message)
   try {
     const knowledge =
@@ -195,6 +196,14 @@ async function chatWithAI(req: Request, res: Response) {
       model: model,
       contents: message,
       config: { systemInstruction: systemInstruction(knowledge) }
+    })
+
+    await prisma.ai_logs.create({
+      data: {
+        session_id: session_id ?? null,
+        user_message: message,
+        ai_response: data.text ?? ''
+      }
     })
     res.json({ text: data.text })
   } catch (err: any) {
