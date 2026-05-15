@@ -20,6 +20,7 @@ export function authenticateToken(req: AuthedRequest, res: Response, next: NextF
   jwt.verify(token, config.jwt.secret, (err, user: any) => {
     // if (err) return res.sendStatus(403)
     if (err) return res.sendStatus(401)
+
     req.user = user
     next()
   })
