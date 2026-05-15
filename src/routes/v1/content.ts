@@ -269,6 +269,23 @@ async function createLead(req: Request, res: Response) {
 }
 
 async function getTable(req: Request, res: Response) {
+  // const paramResult = tableParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const queryResult = listQuery.safeParse(req.query)
+  // if (!queryResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: queryResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { is_published, _sort, _order } = queryResult.data
+  // const { table } = paramResult.data
+
   const { is_published, _sort, _order } = req.query as z.infer<typeof listQuery>
   const { table } = req.params as z.infer<typeof tableParam>
   const model = prisma[table]
@@ -292,11 +309,14 @@ async function getTable(req: Request, res: Response) {
       const sortOrder = _order === 'asc' ? 'asc' : 'desc'
       orderBy[sortField] = sortOrder
     }
-    const resultData = await model.findMany({
+    const data = await model.findMany({
       where: whereClaues,
       orderBy: _sort ? orderBy : undefined
     })
-    const data = normalizeTableColumn(table, resultData)
+    // const response: z.infer<typeof genericResponse> = {
+    //   success: true,
+    //   data: data
+    // }
     res.status(200).json(data)
   } catch (err: any) {
     console.error('TABLE_ERROR', err)
@@ -329,6 +349,23 @@ async function getTableById(req: Request, res: Response) {
 }
 
 async function createTable(req: Request, res: Response) {
+  // const paramResult = tableParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const bodyResult = tableBody.safeParse(req.body)
+  // if (!bodyResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: bodyResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table } = paramResult.data
+  // const model = prisma[table]
+
   const { table } = req.params as z.infer<typeof tableParam>
   const resultData = req.body as z.infer<typeof tableBody>
   const model = prisma[table]
@@ -347,9 +384,25 @@ async function createTable(req: Request, res: Response) {
 }
 
 async function updateTableById(req: Request, res: Response) {
+  // const paramResult = tableIdParam.safeParse(req.params)
+  // if (!paramResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: paramResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const bodyResult = tableBody.safeParse(req.body)
+  // if (!bodyResult.success) {
+  //   const response: z.infer<typeof errorResponse> = {
+  //     error: bodyResult.error.message
+  //   }
+  //   return res.status(400).json(response)
+  // }
+  // const { table, id } = paramResult.data
+  // const data = bodyResult.data
+
   const { table, id } = req.params as z.infer<typeof tableIdParam>
-  const resultData = req.body as z.infer<typeof tableBody>
-  const data = normalizeTableBody(table, resultData)
+  const data = req.body as z.infer<typeof tableBody>
   const model = prisma[table]
   try {
     const result = await model.update({ where: { id: Number(id) }, data })
@@ -424,24 +477,6 @@ const tableNormalizers: Record<string, (data: any) => any> = {
 
 function normalizeTableBody(table: string, data: any) {
   return tableNormalizers[table]?.(data) ?? data
-}
-
-const tableColNormalizers: Record<string, (data: any) => any> = {
-  portfolio: (data) => {
-    const cols = ['client_name_en', 'client_name_th']
-    if (cols.every((col) => !(col in data))) return data
-    const { ...rest } = data
-    return {
-      ...rest,
-      client_name: rest.client_name_en ?? rest.client_name_th
-    }
-  }
-}
-
-function normalizeTableColumn(table: string, data: any) {
-  const fn = tableColNormalizers[table]
-  if (!fn) return data
-  return Array.isArray(data) ? data.map(fn) : fn(data)
 }
 
 export default router
