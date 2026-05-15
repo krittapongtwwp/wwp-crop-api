@@ -3,13 +3,23 @@
 import 'dotenv/config'
 import { defineConfig } from 'prisma/config'
 
+// export default defineConfig({
+//   schema: 'prisma/schema.prisma',
+//   migrations: {
+//     path: 'prisma/migrations',
+//     seed: 'tsx prisma/seed/seed.ts'
+//   },
+//   datasource: {
+//     url: process.env['DATABASE_URL']
+//   }
+// })
 export default defineConfig({
-  schema: 'prisma/schema.prisma',
+  schema: 'prisma/legacy/schema.prisma',
   migrations: {
-    path: 'prisma/migrations',
-    seed: 'tsx prisma/seed/seed.ts'
+    path: 'prisma/legacy/migrations',
+    seed: 'tsx prisma/legacy/seed/seed.ts'
   },
   datasource: {
-    url: process.env['DATABASE_URL']
+    url: process.env['LEGACY_DATABASE_URL']
   }
 })
